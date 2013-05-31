@@ -1,4 +1,9 @@
 import cv2
+import warnings
+import os
+import collections
+import numpy as np
+
 class FaceRecognizer():
 
     def __init__(self):
@@ -16,7 +21,12 @@ class FaceRecognizer():
         self.labels_set = []
         self.int_labels = []
         self.labels_dict_rev = {}
+        if not hasattr(cv2, 'createFisherFaceRecognizer'):
+            self.supported = False
+            warnings.warn("Returning None. OpenCV >= 2.4.4 required.")
+            return
         self.model = cv2.createFisherFaceRecognizer()
+
         # Not yet supported
         # self.eigenValues = None
         # self.eigenVectors = None
@@ -48,16 +58,16 @@ class FaceRecognizer():
 
         >>> f = FaceRecognizer()
         >>> imgs1 = ImageSet(path/to/images_of_type1)
-        >>> labels1 = [0]*len(imgs1)
+        >>> labels1 = LabelSet("type1", imgs1)
         >>> imgs2 = ImageSet(path/to/images_of_type2)
-        >>> labels2 = [1]*len(imgs2)
+        >>> labels2 = LabelSet("type2", imgs2)
         >>> imgs3 = ImageSet(path/to/images_of_type3)
-        >>> labels3 = [2]*len(imgs3)
-        >>> imgs = imgs1 + imgs2 + imgs3
-        >>> labels = labels1 + labels2 + labels3
+        >>> labels3 = LabelSet("type3", imgs3)
+        >>> imgs = concatenate(imgs1, imgs2, imgs3)
+        >>> labels = concatenate(labels1, labels2, labels3)
         >>> f.train(imgs, labels)
-        >>> img = Image("some_image_of_any_of_the_above_type")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)
 
         Save Fisher Training Data
         >>> f.save("trainingdata.xml")
@@ -65,14 +75,14 @@ class FaceRecognizer():
         Load Fisher Training Data and directly use without trainging
         >>> f1 = FaceRecognizer()
         >>> f1.load("trainingdata.xml")
-        >>> img = Image("some_image_of_any_of_the_above_type")
-        >>> print f1.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f1.predict(imgs)
 
         Use CSV files for training
         >>> f = FaceRecognizer()
         >>> f.train(csvfile="CSV_file_name", delimiter=";")
-        >>> img = Image("some_image_of_any_of_the_type_in_csv_file")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)
         """
 
         if csvfile:
@@ -112,16 +122,16 @@ class FaceRecognizer():
                           "training images. Training not initiated.")
             return None
 
-        self.imageSize = images[0].size()
-        w, h = self.imageSize
-        images = [img if img.size() == self.imageSize else img.resize(w, h)
-                  for img in images]
+        self.imageSize = images[0].shape[:2]
+        h, w = self.imageSize
+        images = [img if img.shape[:2] == self.imageSize 
+                 else cv2.resize(img, (w, h)) for img in images]
 
         self.int_labels = [self.labels_dict[key] for key in labels]
         self.train_labels = labels
         labels = np.array(self.int_labels)
         self.train_imgs = images
-        cv2imgs = [img.getGrayNumpyCv2() for img in images]
+        cv2imgs = [cv2.cvtColor(img, cv2.cv.CV_BGR2GRAY) for img in images]
 
         self.model.train(cv2imgs, labels)
         # Not yet supported
@@ -129,7 +139,7 @@ class FaceRecognizer():
         # self.eigenVectors = self.model.getMat("eigenVectors")
         # self.mean = self.model.getMat("mean")
 
-    def predict(self, image):
+    def predict(self, imgs):
         """
         **SUMMARY**
 
@@ -148,16 +158,16 @@ class FaceRecognizer():
 
         >>> f = FaceRecognizer()
         >>> imgs1 = ImageSet(path/to/images_of_type1)
-        >>> labels1 = ["type1"]*len(imgs1)
+        >>> labels1 = LabelSet("type1", imgs1)
         >>> imgs2 = ImageSet(path/to/images_of_type2)
-        >>> labels2 = ["type2"]*len(imgs2)
+        >>> labels2 = LabelSet("type2", imgs2)
         >>> imgs3 = ImageSet(path/to/images_of_type3)
-        >>> labels3 = ["type3"]*len(imgs3)
-        >>> imgs = imgs1 + imgs2 + imgs3
-        >>> labels = labels1 + labels2 + labels3
+        >>> labels3 = LabelSet("type3", imgs3)
+        >>> imgs = concatenate(imgs1, imgs2, imgs3)
+        >>> labels = concatenate(labels1, labels2, labels3)
         >>> f.train(imgs, labels)
-        >>> img = Image("some_image_of_any_of_the_above_type")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)
 
         Save Fisher Training Data
         >>> f.save("trainingdata.xml")
@@ -165,29 +175,41 @@ class FaceRecognizer():
         Load Fisher Training Data and directly use without trainging
         >>> f1 = FaceRecognizer()
         >>> f1.load("trainingdata.xml")
-        >>> img = Image("some_image_of_any_of_the_above_type")
-        >>> print f1.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f1.predict(imgs)
 
         Use CSV files for training
         >>> f = FaceRecognizer()
         >>> f.train(csvfile="CSV_file_name", delimiter=";")
-        >>> img = Image("some_image_of_any_of_the_type_in_csv_file")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)
         """
         if not self.supported:
             warnings.warn("Fisher Recognizer is supported by OpenCV >= 2.4.4")
             return None
+        h, w = self.imageSize
+        images = [img if img.shape[:2] == self.imageSize
+                 else cv2.resize(img, (w, h)) for img in imgs]
 
-        if image.size() != self.imageSize:
-            w, h = self.imageSize
-            image = image.resize(w, h)
+        if isinstance(imgs, np.ndarray):
+            if imgs.shape[:2] != self.imageSize:
+                image = cv2.resize(imgs, (w, h))
+            cv2img = cv2.cvtColor(image, cv2.cv.CV_BGR2GRAY)
+            label, confidence = self.model.predict(cv2img)
+            retLabel = self.labels_dict_rev.get(label)
+            if not retLabel:
+                retLabel = label
+            return (retLabel, confidence)
 
-        cv2img = image.getGrayNumpyCv2()
-        label, confidence = self.model.predict(cv2img)
-        retLabel = self.labels_dict_rev.get(label)
-        if not retLabel:
-            retLabel = label
-        return retLabel,confidence
+        retVal = []
+        for image in images:
+            cv2img = cv2.cvtColor(image, cv2.cv.CV_BGR2GRAY)
+            label, confidence = self.model.predict(cv2img)
+            retLabel = self.labels_dict_rev.get(label)
+            if not retLabel:
+                retLabel = label
+            retVal.append((retLabel, confidence))
+        return retVal
 
     # def update():
     #     OpenCV 2.4.4 doens't support update yet. It asks to train.
@@ -213,16 +235,16 @@ class FaceRecognizer():
 
         >>> f = FaceRecognizer()
         >>> imgs1 = ImageSet(path/to/images_of_type1)
-        >>> labels1 = [0]*len(imgs1)
+        >>> labels1 = LabelSet("type1", imgs1)
         >>> imgs2 = ImageSet(path/to/images_of_type2)
-        >>> labels2 = [1]*len(imgs2)
+        >>> labels2 = LabelSet("type2", imgs2)
         >>> imgs3 = ImageSet(path/to/images_of_type3)
-        >>> labels3 = [2]*len(imgs3)
-        >>> imgs = imgs1 + imgs2 + imgs3
-        >>> labels = labels1 + labels2 + labels3
+        >>> labels3 = LabelSet("type3", imgs3)
+        >>> imgs = concatenate(imgs1, imgs2, imgs3)
+        >>> labels = concatenate(labels1, labels2, labels3)
         >>> f.train(imgs, labels)
-        >>> img = Image("some_image_of_any_of_the_above_type")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)
 
         #Save New Fisher Training Data
         >>> f.save("new_trainingdata.xml")
@@ -251,8 +273,8 @@ class FaceRecognizer():
 
         >>> f = FaceRecognizer()
         >>> f.load("trainingdata.xml")
-        >>> img = Image("some_image_of_any_of_the_type_present_in_data")
-        >>> print f.predict(img)
+        >>> imgs = ImageSet("path/to/testing_images")
+        >>> print f.predict(imgs)        
         """
         if not self.supported:
             warnings.warn("Fisher Recognizer is supported by OpenCV >= 2.4.4")
@@ -272,3 +294,35 @@ class FaceRecognizer():
             w += 1
             h = tsize / w
         self.imageSize = (w, h)
+
+class ImageSet(list):
+
+    def __init__(self, directory):
+        try:
+            imagefiles = os.listdir(directory)
+            print imagefiles
+        except OSError as error:
+            warnings.warn("OS Error({0}): {1}".format(error.errno, error.strerror))
+            return
+        for imagefile in imagefiles:
+            filename = os.path.join(directory, imagefile)
+            img = cv2.imread(filename)
+            #print img
+            if isinstance(img, np.ndarray):
+                #print self
+                self.append(img)
+
+class LabelSet(list):
+
+    def __init__(self, label, imageset):
+        if not isinstance(imageset, collections.Iterable):
+            warnings.warn("The provided ImageSet is not a list")
+            return None
+        labels = [label]*len(imageset)
+        self.extend(labels)
+
+def concatenate(*args):
+    retVal = []
+    for arg in args:
+        retVal.extend(arg)
+    return retVal
