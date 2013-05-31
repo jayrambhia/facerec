@@ -302,7 +302,8 @@ class ImageSet(list):
             imagefiles = os.listdir(directory)
             print imagefiles
         except OSError as error:
-            warnings.warn("OS Error({0}): {1}".format(error.errno, error.strerror))
+            print "OS Error({0}): {1}" .format(error.errno, error.strerror)
+            warnings.warn("encountered the above mentioned error. Returning Empty list.")
             return
         for imagefile in imagefiles:
             filename = os.path.join(directory, imagefile)
