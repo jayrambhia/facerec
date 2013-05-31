@@ -7,7 +7,8 @@ Example
 ========
 
 1. Train the recognizer, predict few results and save data
-```python
+
+``` python
 
 from facerec import FaceRecognizer, ImageSet, LabelSet, concatenate
 
@@ -28,7 +29,7 @@ recognizer.save("gender.xml")
 
 2. Load data and predict.
 
-```python
+``` python
 recognizer = FaceRecognizer()
 recognizer.load("gender.xml")
 img = ImageSet("Test_images")
