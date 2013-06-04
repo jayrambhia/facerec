@@ -297,10 +297,13 @@ class FaceRecognizer():
 
 class ImageSet(list):
 
-    def __init__(self, directory):
+    def __init__(self, directory=None, imgs=None):
+        if imgs:
+            self.extend(imgs)
+            return
         try:
             imagefiles = os.listdir(directory)
-            print imagefiles
+
         except OSError as error:
             print "OS Error({0}): {1}" .format(error.errno, error.strerror)
             warnings.warn("encountered the above mentioned error. Returning Empty list.")
@@ -312,6 +315,21 @@ class ImageSet(list):
             if isinstance(img, np.ndarray):
                 #print self
                 self.append(img)
+
+    def cropFaces(self, cascade=None):
+        if not cascade:
+            cascade = ""
+        classifier = cv2.CascadeClassifier(cascade)
+        gray = [cv2.cvtColor(img, cv2.cv.CV_BGR2GRAY) for img in self]
+        objects = [classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=3, minSize=(10, 10), flags = cv2.cv.CV_HAAR_SCALE_IMAGE) for img in gray]
+        imgs = [img[obj[0][0]:obj[0][0]+obj[0][2], obj[0][1]:obj[0][1]+obj[0][3]] for img, obj in zip(self, objects) if isinstance(obj, np.ndarray)]
+        return ImageSet(imgs=imgs)
+
+    def show(self, name="facerec", delay=500):
+        for img in self:
+            cv2.imshow(name, img)
+            cv2.waitKey(delay)
+        cv2.destroyWindow(name)
 
 class LabelSet(list):
 
