@@ -6,7 +6,7 @@ Python based framework for OpenCV's Fisher faces
 Example
 ========
 
-1. Train the recognizer, predict few results and save data
+ - Train the recognizer, predict few results and save data
 
 ``` python
 
@@ -26,7 +26,7 @@ img = ImageSet("Test_images")
 print recognizer.predict(img)
 recognizer.save("gender.xml")
 ```
-2. Load data and predict.
+ - Load data and predict.
 
 ``` python
 recognizer = FaceRecognizer()
@@ -34,7 +34,7 @@ recognizer.load("gender.xml")
 img = ImageSet("Test_images")
 print recognizer.predict(img)
 ```
-3. Crop faces from the image (multiple faces in one image support added)
+ - Crop faces from the image (multiple faces in one image support added)
 
 ``` python
 
@@ -45,7 +45,7 @@ faces = imgs.cropFaces("cascadefile.xml")
 # faces is ImageSet object
 faces.show()
 ```
-4. Show Images
+ -  Show Images
 
 ``` python
 img = ImageSet("image_folder/")

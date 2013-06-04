@@ -1,4 +1,6 @@
 from facerec.base import cv2, os, np, warnings, collections, LAUNCH_PATH, CASCADE_PATH
+
+
 class FaceRecognizer():
 
     def __init__(self):
@@ -291,6 +293,18 @@ class FaceRecognizer():
         self.imageSize = (w, h)
 
 class ImageSet(list):
+    """
+    **SUMMARY**
+
+    This is a class derived from list to keep a list of images. It helps
+    in loading all the images from a given directory. Bulk operations can
+    be performed on this class. eg. cropping faces
+
+    **EXAMPLES**
+
+    >>> imgs = ImageSet("directory_with_images")
+    >>> imgs.show()
+    """
 
     def __init__(self, directory="", imgs=None):
         if os.path.isfile(directory):
@@ -314,6 +328,29 @@ class ImageSet(list):
                 self.append(img)
 
     def cropFaces(self, cascade=None):
+        """
+        **SUMMARY**
+
+        This function helps in cropping a certain object in all of the images
+        by using the provided haar cascade. A haar classifier is implemented 
+        and images are cropped. This function also supports multiple faces in
+        one single image.
+
+        **PARAMETERS**
+
+        cascade - haar cascade string
+
+        **RETURNS**
+
+        ImageSet
+
+        **EXAMPLES**
+
+        >>> imgs = ImageSet("some_directory/")
+        >>> cascade = "face.xml"
+        >>> faces = imgs.cropFaces(cascade)
+        >>> faces.show()
+        """
         if not cascade:
             cascade = CASCADE_PATH
         else:
@@ -328,13 +365,45 @@ class ImageSet(list):
         return ImageSet(imgs=imgs)
 
     def show(self, name="facerec", delay=500):
+        """
+        **SUMMARY**
+
+        This function uses OpenCV's default display utilities and shows
+        all the images present in the ImageSet.
+
+        **PARAMETERS**
+
+        name  - Name of the display window
+        delay - Time delay between each images in milliseconds.
+
+        **EXAMPLES**
+
+        >>> imgs = ImageSet("images/")
+        >>> imgs.show("faces", 2000)
+        """
         for img in self:
             cv2.imshow(name, img)
             cv2.waitKey(delay)
         cv2.destroyWindow(name)
 
 class LabelSet(list):
+    """
+    **SUMMARY**
 
+    This is a class derived from list to implement rapid label
+    generation for a given ImageSet. labels can be integers or
+    string variables.
+
+    ***PARAMETERS***
+
+    label    - Label name
+    imageset - ImageSet which is to be labelled.
+
+    **EXAMPLES**
+
+    >>> imgs = ImageSet("images/")
+    >>> labels = LabelSet("positive", imgs)
+    """
     def __init__(self, label, imageset):
         if not isinstance(imageset, collections.Iterable):
             warnings.warn("The provided ImageSet is not a list")
@@ -343,6 +412,26 @@ class LabelSet(list):
         self.extend(labels)
 
 def concatenate(*args):
+    """
+    **SUMMARY**
+    This function is implemented for rapid concatenation of 
+    images and labels.
+
+    **EXAMPLES**
+
+    >>> f = FaceRecognizer()
+    >>> imgs1 = ImageSet(path/to/images_of_type1)
+    >>> labels1 = LabelSet("type1", imgs1)
+    >>> imgs2 = ImageSet(path/to/images_of_type2)
+    >>> labels2 = LabelSet("type2", imgs2)
+    >>> imgs3 = ImageSet(path/to/images_of_type3)
+    >>> labels3 = LabelSet("type3", imgs3)
+    >>> imgs = concatenate(imgs1, imgs2, imgs3)
+    >>> labels = concatenate(labels1, labels2, labels3)
+    >>> f.train(imgs, labels)
+    >>> imgs = ImageSet("path/to/testing_images")
+    >>> print f.predict(imgs)
+    """
     retVal = []
     for arg in args:
         retVal.extend(arg)
