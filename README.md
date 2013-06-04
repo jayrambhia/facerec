@@ -26,7 +26,6 @@ img = ImageSet("Test_images")
 print recognizer.predict(img)
 recognizer.save("gender.xml")
 ```
-
 2. Load data and predict.
 
 ``` python
@@ -35,7 +34,6 @@ recognizer.load("gender.xml")
 img = ImageSet("Test_images")
 print recognizer.predict(img)
 ```
-
 3. Crop faces from the image (multiple faces in one image support added)
 
 ``` python
@@ -46,4 +44,11 @@ faces = imgs.cropFaces("cascadefile.xml")
 # faces = imgs.cropFaces() # to use the default cascade file included
 # faces is ImageSet object
 faces.show()
+```
+4. Show Images
+
+``` python
+img = ImageSet("image_folder/")
+img.show(delay=500) # This uses default opencv display.
+# delay is in milliseconds
 ```
