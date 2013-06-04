@@ -35,3 +35,15 @@ recognizer.load("gender.xml")
 img = ImageSet("Test_images")
 print recognizer.predict(img)
 ```
+
+3. Crop faces from the image (multiple faces in one image support added)
+
+``` python
+
+imgs = ImageSet("images with faces")
+faces = imgs.cropFaces("cascadefile.xml")
+# or
+# faces = imgs.cropFaces() # to use the default cascade file included
+# faces is ImageSet object
+faces.show()
+```

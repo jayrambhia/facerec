@@ -1,9 +1,4 @@
-import cv2
-import warnings
-import os
-import collections
-import numpy as np
-
+from facerec.base import cv2, os, np, warnings, collections, LAUNCH_PATH, CASCADE_PATH
 class FaceRecognizer():
 
     def __init__(self):
@@ -297,7 +292,11 @@ class FaceRecognizer():
 
 class ImageSet(list):
 
-    def __init__(self, directory=None, imgs=None):
+    def __init__(self, directory="", imgs=None):
+        if os.path.isfile(directory):
+            img = cv2.imread(directory)
+            self.append(img)
+            return
         if imgs:
             self.extend(imgs)
             return
@@ -311,18 +310,21 @@ class ImageSet(list):
         for imagefile in imagefiles:
             filename = os.path.join(directory, imagefile)
             img = cv2.imread(filename)
-            #print img
             if isinstance(img, np.ndarray):
-                #print self
                 self.append(img)
 
     def cropFaces(self, cascade=None):
         if not cascade:
-            cascade = ""
+            cascade = CASCADE_PATH
+        else:
+            if not os.path.isfile(cascade):
+                warnings.warn("The provided cascade does not exist. Using default cascade")
+                cascade = CASCADE_PATH
         classifier = cv2.CascadeClassifier(cascade)
         gray = [cv2.cvtColor(img, cv2.cv.CV_BGR2GRAY) for img in self]
         objects = [classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=3, minSize=(10, 10), flags = cv2.cv.CV_HAAR_SCALE_IMAGE) for img in gray]
-        imgs = [img[obj[0][0]:obj[0][0]+obj[0][2], obj[0][1]:obj[0][1]+obj[0][3]] for img, obj in zip(self, objects) if isinstance(obj, np.ndarray)]
+        imgs = [[img[ob[1]:ob[1]+ob[3], ob[0]:ob[0]+ob[2]] for ob in obj] for img, obj in zip(self, objects) if isinstance(obj, np.ndarray)]
+        imgs = concatenate(*imgs)
         return ImageSet(imgs=imgs)
 
     def show(self, name="facerec", delay=500):

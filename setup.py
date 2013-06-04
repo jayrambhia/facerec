@@ -7,5 +7,8 @@ setup(name="facerec",
   author_email='jayrambhia777@gmail.com',
   license='BSD',
   packages = find_packages(),
-  requires=['cv2', 'numpy']
+  requires=['cv2', 'numpy'],
+  package_data = {
+            'facerec' : ['samples/*']
+            }
   )

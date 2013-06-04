@@ -1,1 +1,1 @@
-from FaceRecognizer import ImageSet, LabelSet, concatenate, FaceRecognizer 
+from FaceRecognizer import ImageSet, LabelSet, concatenate, FaceRecognizer
